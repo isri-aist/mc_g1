@@ -1,0 +1,6 @@
+#pragma once
+
+namespace mc_rtc
+{
+  constexpr auto G1_DESCRIPTION_PATH = "@G1_DESCRIPTION_PATH@";
+}

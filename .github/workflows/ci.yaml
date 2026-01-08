@@ -1,0 +1,32 @@
+name: CI for mc_h1
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+jobs:
+  build-and-test:
+    runs-on: [ubuntu-22.04]
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Install dependencies
+        uses: jrl-umi3218/github-actions/install-dependencies@master
+        with:
+          ubuntu: |
+            apt-mirrors:
+              mc-rtc:
+                cloudsmith: mc-rtc/head
+            apt: libmc-rtc-dev
+          ros: |
+            apt: mc-rtc-plugin
+          github: |
+            - path: isri-aist/h1_description
+              ref: main
+
+      - uses: actions/checkout@v6
+      - name: Build with CMake
+        uses: jrl-umi3218/github-actions/build-cmake-project@master
