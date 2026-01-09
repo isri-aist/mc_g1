@@ -1,4 +1,4 @@
-name: CI for mc_h1
+name: CI for mc_g1
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           ros: |
             apt: mc-rtc-plugin
           github: |
-            - path: isri-aist/h1_description
+            - path: isri-aist/g1_description
               ref: main
 
       - uses: actions/checkout@v6
