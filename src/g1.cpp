@@ -5,9 +5,6 @@
 #include <mc_rtc/logging.h>
 #include <RBDyn/parsers/urdf.h>
 
-#include <boost/filesystem.hpp>
-namespace bfs = boost::filesystem;
-
 namespace mc_robots
 {
 
@@ -19,11 +16,11 @@ inline static std::string g1Variant(const std::string & variant)
 }
 
 G1RobotModule::G1RobotModule(const std::string & variant)
-: RobotModule(mc_rtc::G1_DESCRIPTION_PATH, g1Variant(variant))
+: RobotModule(mc_rtc::G1_DESCRIPTION_PATH, 
+              g1Variant(variant),
+              std::string(mc_rtc::G1_DESCRIPTION_PATH) + "/urdf/" + g1Variant(variant) + ".urdf")
 {
   mc_rtc::log::success("G1RobotModule loaded with name: {}", name);
-
-  urdf_path = std::string(mc_rtc::G1_DESCRIPTION_PATH) + "/urdf/" + name + ".urdf";
   rsdf_dir = std::string(mc_rtc::G1_DESCRIPTION_PATH) + "/rsdf";
 
   mc_rtc::log::success("G1RobotModule using URDF \"{}\"", urdf_path);
@@ -33,19 +30,6 @@ G1RobotModule::G1RobotModule(const std::string & variant)
   bool fixed = false;
   // Makes all the basic initialization that can be done from an URDF file
   init(rbd::parsers::from_urdf_file(urdf_path, fixed));
-
-#if 0
-  // Build _convexHull, but conflict primitives defined in g1.urdf
-  bfs::path convexPath = bfs::path(path) / "convex/g1";
-  for(const auto & b : mb.bodies())
-  {
-    bfs::path ch = convexPath / (b.name() + ".txt");
-    if(bfs::exists(ch))
-    {
-      _convexHull[b.name()] = {b.name(), ch.string()};
-    }
-  }
-#endif
 
   _ref_joint_order = {
       "left_hip_yaw_joint",        "left_hip_roll_joint",       "left_hip_pitch_joint",
@@ -123,14 +107,14 @@ G1RobotModule::G1RobotModule(const std::string & variant)
                             mc_rbdyn::Collision("torso_link", "right_shoulder_yaw_link", 0.02, 0.001, 0.),
                             mc_rbdyn::Collision("torso_link", "left_elbow_link", 0.05, 0.03, 0.),
                             mc_rbdyn::Collision("torso_link", "right_elbow_link", 0.05, 0.03, 0.),
-                            mc_rbdyn::Collision("pelvis", "left_shoulder_yaw_link", 0.05, 0.03, 0.),
-                            mc_rbdyn::Collision("pelvis", "right_shoulder_yaw_link", 0.05, 0.03, 0.),
-                            mc_rbdyn::Collision("pelvis", "left_elbow_link", 0.05, 0.03, 0.),
-                            mc_rbdyn::Collision("pelvis", "right_elbow_link", 0.05, 0.03, 0.),
+                            mc_rbdyn::Collision("pelvis_contour_link", "left_shoulder_yaw_link", 0.05, 0.03, 0.),
+                            mc_rbdyn::Collision("pelvis_contour_link", "right_shoulder_yaw_link", 0.05, 0.03, 0.),
+                            mc_rbdyn::Collision("pelvis_contour_link", "left_elbow_link", 0.05, 0.03, 0.),
+                            mc_rbdyn::Collision("pelvis_contour_link", "right_elbow_link", 0.05, 0.03, 0.),
                             mc_rbdyn::Collision("left_hip_pitch_link", "right_hip_pitch_link", 0.02, 0.01, 0.),
                             mc_rbdyn::Collision("left_knee_link", "right_knee_link", 0.02, 0.01, 0.),
                             mc_rbdyn::Collision("left_ankle_pitch_link", "right_ankle_pitch_link", 0.02, 0.01, 0.),
-                            mc_rbdyn::Collision("left_ankle_roll_link", "right_ankle_roll_link", 0.02, 0.01, 0.),
+                            mc_rbdyn::Collision("left_ankle_roll_link_0", "right_ankle_roll_link_0", 0.02, 0.01, 0.),
                             mc_rbdyn::Collision("left_ankle_pitch_link", "right_knee_link", 0.02, 0.01, 0.),
                             mc_rbdyn::Collision("right_ankle_pitch_link", "left_knee_link", 0.02, 0.01, 0.)};
   _commonSelfCollisions = _minimalSelfCollisions;
