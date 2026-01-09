@@ -32,22 +32,34 @@ G1RobotModule::G1RobotModule(const std::string & variant)
   init(rbd::parsers::from_urdf_file(urdf_path, fixed));
 
   _ref_joint_order = {
-      "left_hip_yaw_joint",        "left_hip_roll_joint",       "left_hip_pitch_joint",
+      "left_hip_pitch_joint",      "left_hip_roll_joint",       "left_hip_yaw_joint",
       "left_knee_joint",           "left_ankle_pitch_joint",    "left_ankle_roll_joint",
-      "right_hip_yaw_joint",       "right_hip_roll_joint",      "right_hip_pitch_joint",
+      "right_hip_pitch_joint",     "right_hip_roll_joint",      "right_hip_yaw_joint",
       "right_knee_joint",          "right_ankle_pitch_joint",   "right_ankle_roll_joint",
-      "waist_yaw_joint",           "left_shoulder_pitch_joint", "left_shoulder_roll_joint",
-      "left_shoulder_yaw_joint",   "left_elbow_joint",          "left_wrist_roll_joint",
-      "right_shoulder_pitch_joint","right_shoulder_roll_joint", "right_shoulder_yaw_joint",
-      "right_elbow_joint",         "right_wrist_roll_joint"};
+      "waist_yaw_joint"};
 
   if(variant == "29dof")
   {
-    // Add additional joints for 29dof version
     _ref_joint_order.push_back("waist_roll_joint");
     _ref_joint_order.push_back("waist_pitch_joint");
+  }
+
+  _ref_joint_order.insert(_ref_joint_order.end(), {
+      "left_shoulder_pitch_joint", "left_shoulder_roll_joint",
+      "left_shoulder_yaw_joint",   "left_elbow_joint",          "left_wrist_roll_joint"});
+
+  if(variant == "29dof")
+  {
     _ref_joint_order.push_back("left_wrist_pitch_joint");
     _ref_joint_order.push_back("left_wrist_yaw_joint");
+  }
+
+  _ref_joint_order.insert(_ref_joint_order.end(), {
+      "right_shoulder_pitch_joint","right_shoulder_roll_joint", "right_shoulder_yaw_joint",
+      "right_elbow_joint",         "right_wrist_roll_joint"});
+
+  if(variant == "29dof")
+  {
     _ref_joint_order.push_back("right_wrist_pitch_joint");
     _ref_joint_order.push_back("right_wrist_yaw_joint");
   }
