@@ -35,12 +35,14 @@ inline static std::string rightAttachLink()
 
 inline static sva::PTransformd leftAttachX()
 {
-  return sva::PTransformd(Eigen::Vector3d(0.0415, 0.003, 0.));
+  return sva::PTransformd(Eigen::Vector3d(0., 0., 0.));
+  //return sva::PTransformd(Eigen::Vector3d(0.0415, 0.003, 0.));
 }
 
 inline static sva::PTransformd rightAttachX()
 {
-  return sva::PTransformd(Eigen::Vector3d(0.0415, -0.003, 0.));
+  return sva::PTransformd(Eigen::Vector3d(0., 0., 0.));
+  //return sva::PTransformd(Eigen::Vector3d(0.0415, -0.003, 0.));
 }
 
 G1RobotModule::G1RobotModule(const std::string & variant)
