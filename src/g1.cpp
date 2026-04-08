@@ -18,13 +18,8 @@ inline static std::string g1Variant(const std::string & variant)
   return fullName;
 }
 
-inline static std::vector<std::string> noHandsFilteredLinks(const std::string & variant)
+inline static std::vector<std::string> noHandsFilteredLinks()
 {
-  /*if(variant == "23dof")
-  {
-    return {"left_wrist_roll_rubber_hand", "right_wrist_roll_rubber_hand"};
-  }*/
-
   return {"left_rubber_hand", "right_rubber_hand"};
 }
 
@@ -73,7 +68,7 @@ G1RobotModule::G1RobotModule(const std::string & variant, bool no_hands)
   if(no_hands)
   {
     mc_rtc::log::info("G1RobotModule loading with no_hands filtering");
-    init(rbd::parsers::from_urdf_file(urdf_path, fixed, noHandsFilteredLinks(variant)));
+    init(rbd::parsers::from_urdf_file(urdf_path, fixed, noHandsFilteredLinks()));
   }
   else
   {
@@ -217,8 +212,7 @@ extern "C"
 {
   ROBOT_MODULE_API void MC_RTC_ROBOT_MODULE(std::vector<std::string> & names)
   {
-    names = {"G1", "G1_23dof", "G1_29dof", "G1_23dof_no_hands", "G1_29dof_no_hands", "G1_23dof_Revo2",
-             "G1_29dof_Revo2"};
+    names = {"G1", "G1_23dof", "G1_29dof", "G1_no_hands", "G1_Revo2"};
   }
   ROBOT_MODULE_API void destroy(mc_rbdyn::RobotModule * ptr)
   {
@@ -235,19 +229,11 @@ extern "C"
     {
       return new mc_robots::G1RobotModule("29dof");
     }
-    else if(n == "G1_23dof_no_hands")
-    {
-      return new mc_robots::G1RobotModule("23dof", true);
-    }
-    else if(n == "G1_29dof_no_hands")
+    else if(n == "G1_no_hands")
     {
       return new mc_robots::G1RobotModule("29dof", true);
     }
-    else if(n == "G1_23dof_Revo2")
-    {
-      return mc_robots::makeG1WithRevo2("23dof", "g1_23dof_revo2");
-    }
-    else if(n == "G1_29dof_Revo2")
+    else if(n == "G1_Revo2")
     {
       return mc_robots::makeG1WithRevo2("29dof", "g1_29dof_revo2");
     }

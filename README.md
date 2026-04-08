@@ -26,7 +26,5 @@ Available module names:
 - `G1` (alias of `G1_23dof`)
 - `G1_23dof`
 - `G1_29dof`
-- `G1_23dof_no_hands`
-- `G1_29dof_no_hands`
-- `G1_23dof_Revo2` (requires `Revo2_LeftHand` and `Revo2_RightHand` robot modules available)
-- `G1_29dof_Revo2` (requires `Revo2_LeftHand` and `Revo2_RightHand` robot modules available)
+- `G1_no_hands` (uses the `29dof` model with hand links removed)
+- `G1_Revo2` (uses the `29dof` no-hands base and connects `Revo2_LeftHand` and `Revo2_RightHand`)
