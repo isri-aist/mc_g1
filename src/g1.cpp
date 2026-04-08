@@ -3,7 +3,10 @@
 
 #include <mc_rtc/constants.h>
 #include <mc_rtc/logging.h>
+#include <mc_rbdyn/RobotLoader.h>
 #include <RBDyn/parsers/urdf.h>
+
+#include <memory>
 
 namespace mc_robots
 {
@@ -15,7 +18,45 @@ inline static std::string g1Variant(const std::string & variant)
   return fullName;
 }
 
-G1RobotModule::G1RobotModule(const std::string & variant)
+inline static std::vector<std::string> noHandsFilteredLinks(const std::string & variant)
+{
+  if(variant == "23dof")
+  {
+    return {"left_wrist_roll_rubber_hand", "right_wrist_roll_rubber_hand"};
+  }
+
+  return {"left_rubber_hand", "right_rubber_hand"};
+}
+
+inline static std::string leftAttachLink(const std::string & variant)
+{
+  return (variant == "23dof") ? "left_elbow_link" : "left_wrist_yaw_link";
+}
+
+inline static std::string rightAttachLink(const std::string & variant)
+{
+  return (variant == "23dof") ? "right_elbow_link" : "right_wrist_yaw_link";
+}
+
+inline static sva::PTransformd leftAttachX(const std::string & variant)
+{
+  if(variant == "23dof")
+  {
+    return sva::PTransformd(Eigen::Vector3d(0.100, 0.00188791, -0.010));
+  }
+  return sva::PTransformd(Eigen::Vector3d(0.0415, 0.003, 0.));
+}
+
+inline static sva::PTransformd rightAttachX(const std::string & variant)
+{
+  if(variant == "23dof")
+  {
+    return sva::PTransformd(Eigen::Vector3d(0.100, -0.00188791, -0.010));
+  }
+  return sva::PTransformd(Eigen::Vector3d(0.0415, -0.003, 0.));
+}
+
+G1RobotModule::G1RobotModule(const std::string & variant, bool no_hands)
 : RobotModule(mc_rtc::G1_DESCRIPTION_PATH, 
               g1Variant(variant),
               std::string(mc_rtc::G1_DESCRIPTION_PATH) + "/urdf/" + g1Variant(variant) + ".urdf")
@@ -29,7 +70,15 @@ G1RobotModule::G1RobotModule(const std::string & variant)
   // True if the robot has a fixed base, false otherwise
   bool fixed = false;
   // Makes all the basic initialization that can be done from an URDF file
-  init(rbd::parsers::from_urdf_file(urdf_path, fixed));
+  if(no_hands)
+  {
+    mc_rtc::log::info("G1RobotModule loading with no_hands filtering");
+    init(rbd::parsers::from_urdf_file(urdf_path, fixed, noHandsFilteredLinks(variant)));
+  }
+  else
+  {
+    init(rbd::parsers::from_urdf_file(urdf_path, fixed));
+  }
 
   _ref_joint_order = {
       "left_hip_pitch_joint",      "left_hip_roll_joint",       "left_hip_yaw_joint",
@@ -132,13 +181,44 @@ G1RobotModule::G1RobotModule(const std::string & variant)
   _commonSelfCollisions = _minimalSelfCollisions;
 }
 
+static mc_rbdyn::RobotModule * makeG1WithRevo2(const std::string & variant, const std::string & module_name)
+{
+  auto g1NoHands = std::make_shared<mc_robots::G1RobotModule>(variant, true);
+
+  auto leftRevo2 = mc_rbdyn::RobotLoader::get_robot_module("Revo2_LeftHand");
+  auto rightRevo2 = mc_rbdyn::RobotLoader::get_robot_module("Revo2_RightHand");
+
+  if(!leftRevo2 || !rightRevo2)
+  {
+    mc_rtc::log::error("Failed to load Revo2 modules while creating {}", module_name);
+    return nullptr;
+  }
+
+  auto g1Left = g1NoHands->connect(
+      *leftRevo2,
+      leftAttachLink(variant),
+      "left_base_link",
+      "",
+      mc_rbdyn::RobotModule::ConnectionParameters{}.name(module_name).X_other_connection(leftAttachX(variant)));
+
+  auto g1Both = g1Left->connect(
+      *rightRevo2,
+      rightAttachLink(variant),
+      "right_base_link",
+      "",
+      mc_rbdyn::RobotModule::ConnectionParameters{}.name(module_name).X_other_connection(rightAttachX(variant)));
+
+  return new mc_rbdyn::RobotModule(g1Both);
+}
+
 } // namespace mc_robots
 
 extern "C"
 {
   ROBOT_MODULE_API void MC_RTC_ROBOT_MODULE(std::vector<std::string> & names)
   {
-    names = {"G1", "G1_23dof", "G1_29dof"};
+    names = {"G1", "G1_23dof", "G1_29dof", "G1_23dof_no_hands", "G1_29dof_no_hands", "G1_23dof_Revo2",
+             "G1_29dof_Revo2"};
   }
   ROBOT_MODULE_API void destroy(mc_rbdyn::RobotModule * ptr)
   {
@@ -154,6 +234,22 @@ extern "C"
     else if(n == "G1_29dof")
     {
       return new mc_robots::G1RobotModule("29dof");
+    }
+    else if(n == "G1_23dof_no_hands")
+    {
+      return new mc_robots::G1RobotModule("23dof", true);
+    }
+    else if(n == "G1_29dof_no_hands")
+    {
+      return new mc_robots::G1RobotModule("29dof", true);
+    }
+    else if(n == "G1_23dof_Revo2")
+    {
+      return mc_robots::makeG1WithRevo2("23dof", "g1_23dof_revo2");
+    }
+    else if(n == "G1_29dof_Revo2")
+    {
+      return mc_robots::makeG1WithRevo2("29dof", "g1_29dof_revo2");
     }
     else
     {
