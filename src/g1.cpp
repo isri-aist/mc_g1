@@ -25,22 +25,22 @@ inline static bool has29DofUpperBody(const std::string & variant)
 
 inline static std::string leftAttachLink()
 {
-  return "left_wrist_yaw_link";
+  return "left_tool_attach";
 }
 
 inline static std::string rightAttachLink()
 {
-  return "right_wrist_yaw_link";
+  return "right_tool_attach";
 }
 
 inline static sva::PTransformd leftAttachX()
 {
-  return sva::PTransformd(Eigen::Vector3d(0.0415, 0.003, 0.));
+  return sva::PTransformd::Identity();
 }
 
 inline static sva::PTransformd rightAttachX()
 {
-  return sva::PTransformd(Eigen::Vector3d(0.0415, -0.003, 0.));
+  return sva::PTransformd::Identity();
 }
 
 G1RobotModule::G1RobotModule(const std::string & variant)
