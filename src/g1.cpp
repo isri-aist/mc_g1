@@ -3,7 +3,10 @@
 
 #include <mc_rtc/constants.h>
 #include <mc_rtc/logging.h>
+#include <mc_rbdyn/RobotLoader.h>
 #include <RBDyn/parsers/urdf.h>
+
+#include <memory>
 
 namespace mc_robots
 {
@@ -13,6 +16,31 @@ inline static std::string g1Variant(const std::string & variant)
   std::string fullName = "g1_" + variant;
   mc_rtc::log::info("G1RobotModule uses the G1 variant: '{}'", fullName);
   return fullName;
+}
+
+inline static bool has29DofUpperBody(const std::string & variant)
+{
+  return variant == "29dof" || variant == "29dof_no_hands";
+}
+
+inline static std::string leftAttachLink()
+{
+  return "left_tool_attach";
+}
+
+inline static std::string rightAttachLink()
+{
+  return "right_tool_attach";
+}
+
+inline static sva::PTransformd leftAttachX()
+{
+  return sva::PTransformd::Identity();
+}
+
+inline static sva::PTransformd rightAttachX()
+{
+  return sva::PTransformd::Identity();
 }
 
 G1RobotModule::G1RobotModule(const std::string & variant)
@@ -38,7 +66,7 @@ G1RobotModule::G1RobotModule(const std::string & variant)
       "right_knee_joint",          "right_ankle_pitch_joint",   "right_ankle_roll_joint",
       "waist_yaw_joint"};
 
-  if(variant == "29dof")
+  if(has29DofUpperBody(variant))
   {
     _ref_joint_order.push_back("waist_roll_joint");
     _ref_joint_order.push_back("waist_pitch_joint");
@@ -48,7 +76,7 @@ G1RobotModule::G1RobotModule(const std::string & variant)
       "left_shoulder_pitch_joint", "left_shoulder_roll_joint",
       "left_shoulder_yaw_joint",   "left_elbow_joint",          "left_wrist_roll_joint"});
 
-  if(variant == "29dof")
+  if(has29DofUpperBody(variant))
   {
     _ref_joint_order.push_back("left_wrist_pitch_joint");
     _ref_joint_order.push_back("left_wrist_yaw_joint");
@@ -58,7 +86,7 @@ G1RobotModule::G1RobotModule(const std::string & variant)
       "right_shoulder_pitch_joint","right_shoulder_roll_joint", "right_shoulder_yaw_joint",
       "right_elbow_joint",         "right_wrist_roll_joint"});
 
-  if(variant == "29dof")
+  if(has29DofUpperBody(variant))
   {
     _ref_joint_order.push_back("right_wrist_pitch_joint");
     _ref_joint_order.push_back("right_wrist_yaw_joint");
@@ -89,7 +117,7 @@ G1RobotModule::G1RobotModule(const std::string & variant)
   _stance["right_elbow_joint"] = {0.6};
   _stance["right_wrist_roll_joint"] = {0.0};
 
-  if(variant == "29dof")
+  if(has29DofUpperBody(variant))
   {
     _stance["waist_roll_joint"] = {0.0};
     _stance["waist_pitch_joint"] = {0.0};
@@ -132,13 +160,49 @@ G1RobotModule::G1RobotModule(const std::string & variant)
   _commonSelfCollisions = _minimalSelfCollisions;
 }
 
+static mc_rbdyn::RobotModule * makeG1WithRevo2(const std::string & module_name)
+{
+  auto g1NoHands = std::make_shared<mc_robots::G1RobotModule>("29dof_no_hands");
+
+  auto leftRevo2 = mc_rbdyn::RobotLoader::get_robot_module("Revo2_LeftHand");
+  auto rightRevo2 = mc_rbdyn::RobotLoader::get_robot_module("Revo2_RightHand");
+
+  if(!leftRevo2 || !rightRevo2)
+  {
+    mc_rtc::log::error("Failed to load Revo2 modules while creating {}", module_name);
+    return nullptr;
+  }
+
+  auto g1Left = g1NoHands->connect(
+      *leftRevo2,
+      leftAttachLink(),
+      "left_base_link",
+      "",
+      mc_rbdyn::RobotModule::ConnectionParameters{}
+        .name(module_name)
+        .X_other_connection(leftAttachX())
+        .bodySensorMapping({{"FloatingBase", "FloatingBase_LeftHand"}}));
+
+  auto g1Both = g1Left.connect(
+      *rightRevo2,
+      rightAttachLink(),
+      "right_base_link",
+      "",
+      mc_rbdyn::RobotModule::ConnectionParameters{}
+        .name(module_name)
+        .X_other_connection(rightAttachX())
+        .bodySensorMapping({{"FloatingBase", "FloatingBase_RightHand"}}));
+
+  return new mc_rbdyn::RobotModule(g1Both);
+}
+
 } // namespace mc_robots
 
 extern "C"
 {
   ROBOT_MODULE_API void MC_RTC_ROBOT_MODULE(std::vector<std::string> & names)
   {
-    names = {"G1", "G1_23dof", "G1_29dof"};
+    names = {"G1", "G1_23dof", "G1_29dof", "G1_no_hands", "G1_Revo2"};
   }
   ROBOT_MODULE_API void destroy(mc_rbdyn::RobotModule * ptr)
   {
@@ -154,6 +218,14 @@ extern "C"
     else if(n == "G1_29dof")
     {
       return new mc_robots::G1RobotModule("29dof");
+    }
+    else if(n == "G1_no_hands")
+    {
+      return new mc_robots::G1RobotModule("29dof_no_hands");
+    }
+    else if(n == "G1_Revo2")
+    {
+      return mc_robots::makeG1WithRevo2("g1_29dof_revo2");
     }
     else
     {
